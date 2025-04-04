@@ -1,0 +1,28 @@
+CREATE TABLE IF NOT EXISTS member (
+    account VARCHAR(32) NOT NULL PRIMARY KEY,
+    password VARCHAR(512) NOT NULL,
+    name VARCHAR(64),
+    email VARCHAR(256),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS auth (
+    account VARCHAR(32) NOT NULL PRIMARY KEY,
+    issued_tm INTEGER,
+    expired_tm INTEGER,
+    jwt_id VARCHAR(256),
+    missmatch INTEGER NOT NULL,
+    login_at DATETIME,
+    prev_login_at DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS content (
+    content_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    account VARCHAR(32) NOT NULL,
+    post_at DATETIME NOT NULL,
+    title VARCHAR(256) NOT NULL,
+    body TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
