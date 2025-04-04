@@ -1,5 +1,6 @@
 use crate::commons::types::{BoxError, DbPool};
 use sqlx::migrate::MigrateDatabase;
+use tracing_subscriber::{EnvFilter, fmt::time::ChronoLocal};
 
 pub async fn initialize_db(db_url: &str) -> Result<DbPool, BoxError> {
     if db_url != "sqlite::memory:" {
@@ -52,4 +53,17 @@ pub async fn initialize_db(db_url: &str) -> Result<DbPool, BoxError> {
     .await?;
 
     Ok(pool)
+}
+
+pub fn init_tracing() {
+    tracing_subscriber::fmt()
+        .with_timer(ChronoLocal::rfc_3339())
+        .with_env_filter(
+            EnvFilter::builder()
+                .try_from_env()
+                .unwrap_or_else(|_| EnvFilter::new("error")),
+        )
+        .with_file(true)
+        .with_line_number(true)
+        .init();
 }
