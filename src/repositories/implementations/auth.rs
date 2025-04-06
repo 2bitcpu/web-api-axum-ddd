@@ -90,6 +90,7 @@ mod tests {
             expired_tm: Some(2),
             jwt_id: Some("jwt_id".to_string()),
             missmatch: 0,
+            challenge_at: None,
             login_at: Some(Utc::now()),
             prev_login_at: None,
         };
@@ -97,6 +98,7 @@ mod tests {
         let mut executor = pool.begin().await.unwrap();
 
         let result = repository.create(&mut *executor, entity.clone()).await;
+        println!("result: {:#?}", result);
         assert!(result.is_ok());
 
         let result = result.unwrap();
@@ -122,6 +124,7 @@ mod tests {
             expired_tm: Some(2),
             jwt_id: Some("jwt_id".to_string()),
             missmatch: 0,
+            challenge_at: None,
             login_at: Some(Utc::now()),
             prev_login_at: None,
         };
@@ -162,6 +165,7 @@ mod tests {
             expired_tm: Some(2),
             jwt_id: Some("jwt_id".to_string()),
             missmatch: 0,
+            challenge_at: None,
             login_at: Some(Utc::now()),
             prev_login_at: None,
         };
@@ -207,6 +211,7 @@ mod tests {
             expired_tm: Some(2),
             jwt_id: Some("jwt_id".to_string()),
             missmatch: 0,
+            challenge_at: None,
             login_at: Some(Utc::now()),
             prev_login_at: None,
         };

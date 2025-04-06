@@ -1,16 +1,21 @@
 pub mod auth;
 pub mod content;
 
-use crate::commons::types::DbPool;
+use crate::commons::{
+    config::{CORS_ORIGINS, SERVE_DIR},
+    types::DbPool,
+};
 use crate::handlers::{auth as auth_handler, content as content_handler};
 use crate::middlewares::auth::{auth_middleware, option_auth_middleware};
 use crate::use_cases::Modules;
 use axum::{
     Router,
+    http::{HeaderValue, Method},
     middleware::from_fn_with_state,
-    routing::{any, get, post},
+    routing::{any, get, get_service, post},
 };
 use std::sync::Arc;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 pub fn create_handlers(pool: DbPool) -> Router {
     let module = Arc::new(Modules::new(pool));
@@ -32,11 +37,35 @@ pub fn create_handlers(pool: DbPool) -> Router {
         .route("/remove/{content_id}", get(content_handler::remove))
         .route_layer(from_fn_with_state(module.clone(), auth_middleware));
 
-    Router::new().nest(
-        "/service",
-        Router::new()
-            .nest("/contents", content_handler)
-            .nest("/auth", auth_handler)
-            .with_state(module),
-    )
+    let api = Router::new()
+        .nest("/auth", auth_handler)
+        .nest("/contents", content_handler)
+        .with_state(module);
+
+    let api = match &*CORS_ORIGINS {
+        Some(origins) => match origins.len() {
+            0 => api,
+            _ => {
+                let cors = CorsLayer::new()
+                    .allow_methods([Method::GET, Method::POST])
+                    .allow_origin(
+                        origins
+                            .iter()
+                            .map(|s| s.parse::<HeaderValue>().unwrap())
+                            .collect::<Vec<_>>(),
+                    )
+                    .allow_credentials(true);
+                tracing::info!("CORS enabled {:?}", origins);
+                api.layer(cors)
+            }
+        },
+        None => api,
+    };
+
+    match &*SERVE_DIR {
+        Some(dir) => Router::new()
+            .nest("/service", api)
+            .fallback(get_service(ServeDir::new(dir))),
+        None => Router::new().nest("/service", api),
+    }
 }

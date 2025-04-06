@@ -12,16 +12,6 @@ impl ContentRepositoryImpl {
     }
 }
 
-// pub struct ContentEntity {
-//     pub content_id: i32,
-//     pub account: String,
-//     pub post_at: DateTime<Utc>,
-//     pub title: String,
-//     pub body: String,
-//     pub created_at: Option<DateTime<Utc>>,
-//     pub updated_at: Option<DateTime<Utc>>,
-// }
-
 #[rustfmt::skip]
 #[async_trait]
 impl ContentRepository for ContentRepositoryImpl {
@@ -70,6 +60,47 @@ impl ContentRepository for ContentRepositoryImpl {
                 .execute(&mut *executor)
                 .await?
                 .rows_affected(),
+        )
+    }
+
+    async fn list(&self, executor: &mut DbExecutor, title: Option<&str>, page: i32, size: i32) -> Result<Vec<ContentEntity>, BoxError> {
+        Ok(
+            match title {
+                Some(title) => {
+                    sqlx::query_as::<_, ContentEntity>("SELECT * FROM content WHERE title LIKE $1 || '%' ORDER BY post_at DESC LIMIT $2 OFFSET $3")
+                        .bind(title)
+                        .bind(size)
+                        .bind((page - 1) * size)
+                        .fetch_all(&mut *executor)
+                        .await?
+                }
+                None => {
+                    sqlx::query_as::<_, ContentEntity>("SELECT * FROM content ORDER BY post_at DESC LIMIT $1 OFFSET $2")
+                        .bind(size)
+                        .bind((page - 1) * size)
+                        .fetch_all(&mut *executor)
+                        .await?
+                }
+                
+            }
+        )
+    }
+
+    async fn count(&self, executor: &mut DbExecutor, title: Option<&str>) -> Result<i64, BoxError> {
+        Ok(
+            match title {
+                Some(title) => {
+                    sqlx::query_scalar("SELECT COUNT(*) FROM content WHERE title LIKE $1 || '%'")
+                        .bind(title)
+                        .fetch_one(&mut *executor)
+                        .await?
+                }
+                None => {
+                    sqlx::query_scalar("SELECT COUNT(*) FROM content")
+                        .fetch_one(&mut *executor)
+                        .await?
+                }
+            }
         )
     }
 }
@@ -232,5 +263,72 @@ mod tests {
         let result = result.unwrap();
 
         assert_eq!(result, 0);
+    }
+
+    #[tokio::test]
+    async fn test_content_repository_list() {
+        let pool = commons::setup::initialize_db("sqlite::memory:")
+            .await
+            .unwrap();
+        let mut executor = pool.begin().await.unwrap();
+        let repository = ContentRepositoryImpl::new();
+
+        let entity = ContentEntity {
+            content_id: 0,
+            account: "test".to_string(),
+            post_at: Utc::now(),
+            title: "test".to_string(),
+            body: "test".to_string(),
+            created_at: None,
+            updated_at: None,
+        };
+
+        for _ in 0..10 {
+            let result = repository.create(&mut *executor, entity.clone()).await;
+            assert!(result.is_ok());
+        }
+
+        let entity = ContentEntity {
+            content_id: 0,
+            account: "test".to_string(),
+            post_at: Utc::now(),
+            title: "title".to_string(),
+            body: "test".to_string(),
+            created_at: None,
+            updated_at: None,
+        };
+
+        for _ in 0..10 {
+            let result = repository.create(&mut *executor, entity.clone()).await;
+            assert!(result.is_ok());
+        }
+        executor.commit().await.unwrap();
+
+        let mut executor = pool.acquire().await.unwrap();
+
+        let result = repository.count(&mut *executor, None).await;
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result, 20);
+
+        let result = repository.count(&mut *executor, Some("title")).await;
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result, 10);
+
+        let result = repository.list(&mut *executor, Some("tit"), 1, 10).await;
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result.len(), 10);
+
+        let result = repository.list(&mut *executor, None, 2, 10).await;
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result.len(), 10);
+
+        let result = repository.list(&mut *executor, None, 3, 10).await;
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result.len(), 0);
     }
 }

@@ -1,4 +1,4 @@
-use crate::commons::config::{JWT_EXPIRATION_SECONDS, MAX_MISSMATCH_COUNT};
+use crate::commons::config::JWT_EXPIRATION_SECONDS;
 use crate::commons::types::{BoxError, DbPool};
 use crate::models::dtos::auth::{SigninDto, SignupDto};
 use crate::models::dtos::member::AuthMemberDto;
@@ -53,7 +53,7 @@ impl<R: RepositoriesExt> AuthUseCases<R> {
             .await?;
 
         if let Some(auth) = auth.clone() {
-            if auth.missmatch >= *MAX_MISSMATCH_COUNT {
+            if auth.is_locked() {
                 return Err("account is locked".into());
             }
         }
@@ -116,10 +116,7 @@ impl<R: RepositoriesExt> AuthUseCases<R> {
             .await?
             .ok_or(sqlx::Error::RowNotFound)?;
 
-        if auth.jwt_id != Some(claims.jti)
-            || auth.issued_tm != Some(claims.iat)
-            || auth.expired_tm != Some(claims.exp)
-        {
+        if !auth.is_signin(claims.clone()) {
             return Err("invalid token".into());
         }
 

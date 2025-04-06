@@ -2,7 +2,7 @@ use crate::models::entities::content::ContentEntity;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentDto {
     pub content_id: i64,
@@ -33,5 +33,26 @@ impl ContentDto {
             created_at: None,
             updated_at: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_content_dto() {
+        let content = ContentEntity {
+            content_id: 1,
+            account: "test".to_string(),
+            post_at: Utc::now(),
+            title: "test".to_string(),
+            body: "test".to_string(),
+            created_at: None,
+            updated_at: None,
+        };
+        let dto = ContentDto::from_entity(content.clone());
+        let entity = dto.to_entity();
+        assert_eq!(entity, content);
     }
 }

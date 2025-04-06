@@ -126,6 +126,7 @@ mod tests {
             expired_tm: Some(2),
             jwt_id: Some("jwt_id".to_string()),
             missmatch: 1,
+            challenge_at: Some(chrono::Utc::now()),
             login_at: Some(chrono::Utc::now()),
             prev_login_at: None,
         };

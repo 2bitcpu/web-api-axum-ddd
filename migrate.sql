@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS auth (
     expired_tm INTEGER,
     jwt_id VARCHAR(256),
     missmatch INTEGER NOT NULL,
+    challenge_at DATETIME,
     login_at DATETIME,
     prev_login_at DATETIME
 );
