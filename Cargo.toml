@@ -14,7 +14,7 @@ serde_json = { version = "1.0.140", default-features = false, features = ["std"]
 tracing = { version = "0.1.41", default-features = false }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "chrono", "fmt"], default-features = false }
 tower-http = { version = "0.6.2", default-features = false, features = ["fs", "cors"] }
-tokio = { version = "1.44.1", default-features = false, features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.44.1", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 simple-jwt = { git = "https://github.com/2bitcpu/simple-jwt" }
 async-argon2 = { git = "https://github.com/2bitcpu/async-argon2" }
 
